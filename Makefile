@@ -1,5 +1,5 @@
 buildit:
-	./build
+	go build -ldflags "-w" -o bin/resource_sync
 clean:
 	rm -fr bin/*
 buildclean: clean buildit
