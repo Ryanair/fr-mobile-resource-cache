@@ -27,8 +27,6 @@ func readResource(url string) ([]byte, error) {
 
 // getDocument queries a document via sync gateway's REST API
 // and returns the document contents and last revision
-// panics if the document does not exist
-// todo: don't panic, return nil
 func getDocument(documentID string) ([]byte, string, error) {
 	var syncEndpoint = config.SyncURL + "/" + config.Bucket + "/" + documentID
 
