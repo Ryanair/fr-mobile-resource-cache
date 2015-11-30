@@ -1,0 +1,1 @@
+# fr-mobile-resource-cache
