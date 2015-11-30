@@ -1,3 +1,3 @@
 #! /bin/bash
 
-go build -ldflags "-w"
+go build -ldflags "-w" -o bin/fr-mobile-resource-cache

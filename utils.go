@@ -30,13 +30,15 @@ func cleanupSyncDocument(syncDocument []byte) ([]byte, error) {
 	document := make(map[string]interface{})
 	err := json.Unmarshal(syncDocument, &document)
 
+	if err != nil {
+		return nil, err
+	}
+
 	for i := range document {
 		if m, err := regexp.MatchString("_([a-z]+)", i); m == true && err == nil {
 			delete(document, i)
 		}
 	}
 
-	result, err := json.Marshal(document)
-
-	return result, err
+	return json.Marshal(document)
 }
