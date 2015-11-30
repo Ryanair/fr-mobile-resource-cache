@@ -1,3 +1,0 @@
-#! /bin/bash
-
-gofmt -w . && golint && go build
