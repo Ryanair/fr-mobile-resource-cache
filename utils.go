@@ -18,10 +18,8 @@ func getRootNode(m map[string][]interface{}) string {
 }
 
 func logRequest(request *http.Request) {
-	if DEBUG {
-		log, _ := httputil.DumpRequest(request, true)
-		logg.Log("%s", log)
-	}
+	log, _ := httputil.DumpRequest(request, true)
+	logg.LogTo(TagLog, "%s", log)
 }
 
 func cleanupSyncDocument(syncDocument []byte) ([]byte, error) {

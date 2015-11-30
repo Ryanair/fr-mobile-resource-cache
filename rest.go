@@ -12,9 +12,7 @@ import (
 var globalHTTP = &http.Client{}
 
 func readResource(url string) ([]byte, error) {
-	if DEBUG {
-		logg.LogTo(TagLog, "Getting %s\n", url)
-	}
+	logg.LogTo(TagLog, "Getting %s\n", url)
 
 	res, err := http.Get(url)
 	if err != nil {
@@ -79,9 +77,7 @@ func postDocument(document []byte, documentID string) error {
 		return err
 	}
 
-	if DEBUG {
-		logg.LogTo(TagLog, "%s", contents)
-	}
+	logg.LogTo(TagLog, "%s", contents)
 
 	return nil
 }

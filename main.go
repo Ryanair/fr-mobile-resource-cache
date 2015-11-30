@@ -17,7 +17,10 @@ var (
 func main() {
 	//set logging
 	logg.LogKeys[TagError] = true
-	logg.LogKeys[TagLog] = true
+
+	if DEBUG == false {
+		logg.LogKeys[TagLog] = true
+	}
 
 	kingpin.Parse()
 	if *configFileName == "" {
