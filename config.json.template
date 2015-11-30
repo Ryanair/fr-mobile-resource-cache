@@ -1,7 +1,7 @@
 {
     "debug" : true,
     "resources" : {
-        "resourcesDir": "/Users/atanasovv/projects/mobile-resources",
+        "resourcesDir": "/path/to/resource-dir",
         "syncUrl": "http://localhost:4985",
         "bucket": "default"   
     } 
