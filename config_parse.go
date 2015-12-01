@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io"
-
-	"github.com/couchbaselabs/logg"
 )
 
 //DEBUG flag toggles log output
@@ -40,14 +38,13 @@ func (r ConfigJSON) Export() (Config, error) {
 	return result, nil
 }
 
-func parseConfigFile(r io.Reader) {
+func parseConfigFile(r io.Reader) error {
 	configJSON := ConfigJSON{}
 	decoder := json.NewDecoder(r)
 	if err := decoder.Decode(&configJSON); err != nil {
-		logg.LogPanic("%v", err)
+		return err
 	}
 	_, err := configJSON.Export()
-	if err != nil {
-		logg.LogPanic("%v", err)
-	}
+
+	return err
 }

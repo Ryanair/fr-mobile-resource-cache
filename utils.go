@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/couchbaselabs/logg"
 	"net/http"
 	"net/http/httputil"
 	"regexp"
+
+	"github.com/couchbaselabs/logg"
 )
 
 func getRootNode(m map[string][]interface{}) string {
@@ -17,22 +18,20 @@ func getRootNode(m map[string][]interface{}) string {
 }
 
 func logRequest(request *http.Request) {
-	if DEBUG {
-		log, _ := httputil.DumpRequest(request, true)
-		logg.Log("%s", log)
-	}
+	log, _ := httputil.DumpRequest(request, true)
+	logg.LogTo(TagLog, "%s", log)
 }
 
-func cleanupSyncDocument(syncDocument []byte) []byte {
+func cleanupSyncDocument(syncDocument []byte) ([]byte, error) {
 	if len(syncDocument) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	document := make(map[string]interface{})
 	err := json.Unmarshal(syncDocument, &document)
 
 	if err != nil {
-		logg.LogPanic("%v", err)
+		return nil, err
 	}
 
 	for i := range document {
@@ -41,11 +40,5 @@ func cleanupSyncDocument(syncDocument []byte) []byte {
 		}
 	}
 
-	result, err := json.Marshal(document)
-
-	if err != nil {
-		logg.LogPanic("%v", err)
-	}
-
-	return result
+	return json.Marshal(document)
 }
