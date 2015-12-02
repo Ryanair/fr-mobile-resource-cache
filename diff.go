@@ -9,3 +9,7 @@ func compare(a, b []byte) bool {
 
 	return result
 }
+
+func diff(a, b []byte) ([]byte, error) {
+	return jsonpatch.CreateMergePatch(a, b)
+}
