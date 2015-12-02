@@ -5,16 +5,14 @@ import (
 	"testing"
 )
 
-func mockSyncDocument() []byte {
-	return []byte(`{
+func TestCleanupSyncDocument(t *testing.T) {
+	doc := []byte(`{
     "_rev": "1-aaaaa",
     "_prop": true,
     "key": "value"
     }`)
-}
 
-func TestCleanupSyncDocument(t *testing.T) {
-	result, err := cleanupSyncDocument(mockSyncDocument())
+	result, err := cleanupSyncDocument(doc)
 
 	if err != nil {
 		t.Errorf("Error executing cleanupSyncDocument: %v", err)
