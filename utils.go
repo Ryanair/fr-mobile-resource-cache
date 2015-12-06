@@ -9,14 +9,6 @@ import (
 	"github.com/couchbaselabs/logg"
 )
 
-func getRootNode(m map[string][]interface{}) string {
-	for i := range m {
-		return i
-	}
-
-	return ""
-}
-
 func logRequest(request *http.Request) {
 	log, _ := httputil.DumpRequest(request, true)
 	logg.LogTo(TagLog, "%s", log)

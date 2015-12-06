@@ -17,6 +17,7 @@ var (
 func main() {
 	//set logging
 	logg.LogKeys[TagError] = true
+	logg.LogKeys[TagDiff] = true
 
 	if DEBUG == false {
 		logg.LogKeys[TagLog] = true
@@ -69,7 +70,16 @@ func main() {
 		}
 		//if the document does not exist, or there is a difference in revisions, post it
 		if (len(syncDocument) == 0 || syncDocument == nil) || !compare(localDocument, syncDocument) {
-			err := postDocument(localDocument, fileName)
+			patch, err := diff(localDocument, syncDocument)
+			if err != nil {
+				logg.LogTo(TagError, "Error generating patch: %v", err)
+				continue
+			}
+
+			//print the changes in the document
+			logg.LogTo(TagDiff, "%s", patch)
+
+			err = postDocument(localDocument, fileName)
 			if err != nil {
 				logg.LogTo(TagError, "Error saving document: %v", err)
 				continue

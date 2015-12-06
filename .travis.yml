@@ -3,6 +3,9 @@ language: go
 go:
   - tip
 
+script:
+  - make test
+
 notifications:
   email:
     - atanasovv@ryanair.com
