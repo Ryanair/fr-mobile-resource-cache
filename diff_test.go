@@ -17,12 +17,12 @@ func TestCompare(t *testing.T) {
 
 func TestDiff(t *testing.T) {
 	doc1 := []byte(`{
-  "key" : "value"
+  	"key" : "value"
   }`)
 
 	doc2 := []byte(`{
     "key" : "value1"
-    }`)
+  }`)
 
 	patch, err := diff(doc1, doc2)
 
