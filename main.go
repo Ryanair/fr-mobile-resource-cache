@@ -14,7 +14,7 @@ var (
 	configFileName        = kingpin.Arg("config file name", configFileDescription).Default("config.json").String()
 )
 
-func main() {
+func init() {
 	//set logging
 	logg.LogKeys[TagError] = true
 	logg.LogKeys[TagDiff] = true
@@ -41,49 +41,22 @@ func main() {
 	if err != nil {
 		logg.LogPanic("Erro parsing the config file: %v", err)
 	}
+}
 
+func main() {
 	files, err := scanResourcesDir()
 
 	if err != nil {
 		logg.LogPanic("Error scanning resource directory: %v", err)
 	}
 
-	for _, file := range files {
-		localDocument, fileName, err := readFileContents(file)
+	patch, err := patchFiles(files)
 
-		if err != nil {
-			// log the error, don't stop execution if a file fails to read
-			logg.LogTo(TagError, "Error reading file contents: %v", err)
-			continue
-		}
+	if err != nil {
+		logg.LogTo(TagError, "%v", err)
+	}
 
-		syncDocument, _, err := getDocument(fileName)
-		if err != nil {
-			logg.LogTo(TagError, "Error reading sync document: %v", err)
-			continue
-		}
-
-		syncDocument, err = cleanupSyncDocument(syncDocument)
-		if err != nil {
-			logg.LogTo(TagError, "Error cleaning up sync document: %v", err)
-			continue
-		}
-		//if the document does not exist, or there is a difference in revisions, post it
-		if (len(syncDocument) == 0 || syncDocument == nil) || !compare(localDocument, syncDocument) {
-			patch, err := diff(localDocument, syncDocument)
-			if err != nil {
-				logg.LogTo(TagError, "Error generating patch: %v", err)
-				continue
-			}
-
-			//print the changes in the document
-			logg.LogTo(TagDiff, "%s", patch)
-
-			err = postDocument(localDocument, fileName)
-			if err != nil {
-				logg.LogTo(TagError, "Error saving document: %v", err)
-				continue
-			}
-		}
+	if len(patch) > 0 {
+		logg.LogTo(TagDiff, "%s", patch)
 	}
 }
