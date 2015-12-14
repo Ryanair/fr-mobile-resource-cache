@@ -4,6 +4,7 @@ go:
   - tip
 
 script:
+  - cp config.json.template config.json
   - make test
 
 notifications:
