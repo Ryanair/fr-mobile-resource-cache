@@ -8,10 +8,23 @@ import (
 	"strings"
 )
 
+//LocalResource represents the local document
+//can be json or attachment
+type LocalResource struct {
+	FileName string
+	Type     string
+}
+
+//JSONType specifies the local file to be of type json
+var JSONType = "json"
+
+//AttachmentType specifies the local file to be of type json
+var AttachmentType = "attachment"
+
 //scanResourcesDir scans the root directory from config.json
 //and returns all json files, ignoring .git
-func scanResourcesDir() ([]string, error) {
-	fileList := []string{}
+func scanResourcesDir() ([]LocalResource, error) {
+	fileList := []LocalResource{}
 	err := filepath.Walk(config.ResourcesDir, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -22,11 +35,20 @@ func scanResourcesDir() ([]string, error) {
 			return filepath.SkipDir
 		}
 
-		//we are interested only in json files
-		//no hidden files either
-		if filepath.Ext(f.Name()) == ".json" && f.Name()[0:1] != "." {
-			fileList = append(fileList, path)
+		var localResource LocalResource
+
+		//skip hidden files and directories
+		if !f.IsDir() && f.Name()[0:1] != "." {
+			if filepath.Ext(f.Name()) == ".json" {
+				localResource.FileName = path
+				localResource.Type = JSONType
+			} else {
+				localResource.FileName = path
+				localResource.Type = AttachmentType
+			}
 		}
+
+		fileList = append(fileList, localResource)
 
 		return err
 	})
@@ -50,14 +72,18 @@ func readFileContents(file string) ([]byte, string, error) {
 //patchFiles generates a patch between the local json resource and the remote document
 //and creates a new revision if there is a diff
 //returns patch list, error
-func patchFiles(files []string) ([]string, error) {
+func patchFiles(files []LocalResource) ([]string, error) {
 	var (
 		returnError error
 		patches     []string
 	)
 
 	for _, file := range files {
-		localDocument, fileName, err := readFileContents(file)
+		if file == (LocalResource{}) {
+			continue
+		}
+
+		localDocument, fileName, err := readFileContents(file.FileName)
 
 		if err != nil {
 			// log the error, don't stop execution if a file fails to read
