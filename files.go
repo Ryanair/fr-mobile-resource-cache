@@ -83,44 +83,89 @@ func patchFiles(files []LocalResource) ([]string, error) {
 			continue
 		}
 
-		localDocument, fileName, err := readFileContents(file.FileName)
-
-		if err != nil {
-			// log the error, don't stop execution if a file fails to read
-			returnError = fmt.Errorf("Error reading file contents: %v", err)
-			continue
-		}
-
-		syncDocument, _, err := getDocument(fileName)
-		if err != nil {
-			returnError = fmt.Errorf("Error reading sync document: %v", err)
-			continue
-		}
-
-		syncDocument, err = cleanupSyncDocument(syncDocument)
-		if err != nil {
-			returnError = fmt.Errorf("Error cleaning up sync document: %v", err)
-			continue
-		}
-
-		//if the document does not exist, or there is a difference in revisions, post it
-		if (len(syncDocument) == 0 || syncDocument == nil) || !compare(localDocument, syncDocument) {
-			patch, err := diff(localDocument, syncDocument)
-			if err != nil && len(syncDocument) > 0 {
-				returnError = fmt.Errorf("Error generating patch: %v", err)
+		if file.Type == JSONType {
+			patch, err := updateJSONDoc(file)
+			if err != nil {
+				returnError = err
 				continue
 			}
 
-			//print the changes in the document
-			patches = append(patches, string(patch))
-
-			err = postDocument(localDocument, fileName)
+			patches = append(patches, patch)
+		} else {
+			err := updateAttachment(file)
 			if err != nil {
-				returnError = fmt.Errorf("Error saving document: %v", err)
-				continue
+				returnError = err
 			}
 		}
 	}
 
 	return patches, returnError
+}
+
+func updateJSONDoc(file LocalResource) (string, error) {
+	var (
+		returnError error
+		patch       []byte
+	)
+
+	localDocument, fileName, err := readFileContents(file.FileName)
+
+	if err != nil {
+		// log the error, don't stop execution if a file fails to read
+		returnError = fmt.Errorf("Error reading file contents: %v", err)
+	}
+
+	syncDocument, _, err := getDocument(fileName)
+	if err != nil {
+		returnError = fmt.Errorf("Error reading sync document: %v", err)
+	}
+
+	syncDocument, err = cleanupSyncDocument(syncDocument)
+	if err != nil {
+		returnError = fmt.Errorf("Error cleaning up sync document: %v", err)
+	}
+
+	//if the document does not exist, or there is a difference in revisions, post it
+	if (len(syncDocument) == 0 || syncDocument == nil) || !compare(localDocument, syncDocument) {
+		patch, err = diff(localDocument, syncDocument)
+		if err != nil && len(syncDocument) > 0 {
+			returnError = fmt.Errorf("Error generating patch: %v", err)
+		}
+
+		err = postDocument(localDocument, fileName)
+		if err != nil {
+			returnError = fmt.Errorf("Error saving document: %v", err)
+		}
+	}
+
+	return string(patch), returnError
+}
+
+func updateAttachment(file LocalResource) error {
+	var returnError error
+
+	_, fileName, err := readFileContents(file.FileName) // TODO: handle the local file
+
+	if err != nil {
+		// log the error, don't stop execution if a file fails to read
+		returnError = fmt.Errorf("Error reading file contents: %v", err)
+	}
+
+	syncDocument, _, err := getDocument(fileName)
+	if err != nil {
+		returnError = fmt.Errorf("Error reading sync document: %v", err)
+	}
+
+	dummyDoc := []byte(`{
+			"channels": "ch_v1"
+		}`)
+
+	if len(syncDocument) == 0 || syncDocument == nil {
+		err = postDocument(dummyDoc, fileName)
+		if err != nil {
+			returnError = fmt.Errorf("Error saving document: %v", err)
+		}
+	}
+
+	return returnError
 }
