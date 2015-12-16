@@ -80,34 +80,6 @@ func postDocument(document []byte, documentID string) error {
 	return nil
 }
 
-// func createFileUploadRequest(documentID string, filePath string, contentType string) (*http.Request, error) {
-// 	var syncEndpoint = config.SyncURL + "/" + config.Bucket + "/" + documentID
-//
-// 	file, err := os.Open(filePath)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer file.Close()
-//
-// 	body := &bytes.Buffer{}
-// 	writer := multipart.NewWriter(body)
-// 	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = io.Copy(part, file)
-//
-// 	err = writer.Close()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	req, err := http.NewRequest("PUT", syncEndpoint, body)
-// 	req.Header.Add("Content-Type", contentType)
-//
-// 	return req, err
-// }
-
 func postAttachment(fileContents []byte, parentDoc string, documentName string) error {
 	var syncEndpoint = config.SyncURL + "/" + config.Bucket + "/" + parentDoc + "/" + documentName
 
