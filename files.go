@@ -62,11 +62,15 @@ func readFileContents(file string) ([]byte, string, error) {
 		return nil, "", err
 	}
 
-	basename := filepath.Base(file)
-
-	fileName := strings.TrimSuffix(basename, filepath.Ext(basename))
+	fileName := getDocumentID(file)
 
 	return b, fileName, nil
+}
+
+func getDocumentID(fileName string) string {
+	basename := filepath.Base(fileName)
+
+	return strings.TrimSuffix(basename, filepath.Ext(basename))
 }
 
 //patchFiles generates a patch between the local json resource and the remote document
@@ -144,27 +148,31 @@ func updateJSONDoc(file LocalResource) (string, error) {
 func updateAttachment(file LocalResource) error {
 	var returnError error
 
-	_, fileName, err := readFileContents(file.FileName) // TODO: handle the local file
-
-	if err != nil {
-		// log the error, don't stop execution if a file fails to read
-		returnError = fmt.Errorf("Error reading file contents: %v", err)
-	}
-
-	syncDocument, _, err := getDocument(fileName)
+	syncDocument, _, err := getDocument(getDocumentID(file.FileName))
 	if err != nil {
 		returnError = fmt.Errorf("Error reading sync document: %v", err)
 	}
 
-	dummyDoc := []byte(`{
-			"channels": "ch_v1"
-		}`)
+	if len(syncDocument) == 0 || syncDocument == nil || 1 == 1 {
+		fileBody, _, err := readFileContents(file.FileName)
 
-	if len(syncDocument) == 0 || syncDocument == nil {
-		err = postDocument(dummyDoc, fileName)
+		if err != nil {
+			returnError = fmt.Errorf("Error reading attachment: %s", err)
+			return returnError
+		}
+
+		// TODO: check if we have a json file with the same name as the attachment,
+		//and use it as a parent for the attachment, otherwise use the default template
+		err = postDocument([]byte(DefaultAttachmentDoc), getDocumentID(file.FileName))
+
+		// TODO: do that only for new files, otherwise extract from first document read
+		_, rev, err := getDocument(getDocumentID(file.FileName))
+
 		if err != nil {
 			returnError = fmt.Errorf("Error saving document: %v", err)
 		}
+
+		err = postAttachment(fileBody, getDocumentID(file.FileName), filepath.Base(file.FileName)+"?rev="+rev)
 	}
 
 	return returnError
