@@ -28,7 +28,7 @@ func readResource(url string) ([]byte, error) {
 // getDocument queries a document via sync gateway's REST API
 // and returns the document contents and last revision
 func getDocument(documentID string) ([]byte, string, error) {
-	var syncEndpoint = config.SyncURL + "/" + config.Bucket + "/" + documentID
+	var syncEndpoint = getReadSyncEndpoint() + documentID
 
 	result, err := readResource(syncEndpoint)
 
@@ -49,7 +49,7 @@ func getDocument(documentID string) ([]byte, string, error) {
 }
 
 func postDocument(document []byte, documentID string) error {
-	var syncEndpoint = config.SyncURL + "/" + config.Bucket + "/" + documentID
+	var syncEndpoint = getWriteSyncEndpoint() + documentID
 
 	_, rev, err := getDocument(documentID)
 
@@ -81,11 +81,11 @@ func postDocument(document []byte, documentID string) error {
 }
 
 func postAttachment(fileContents []byte, parentDoc string, documentName string) error {
-	var syncEndpoint = config.SyncURL + "/" + config.Bucket + "/" + parentDoc + "/" + documentName
+	var syncEndpoint = getWriteSyncEndpoint() + parentDoc + "/" + documentName
 
 	request, err := http.NewRequest("PUT", syncEndpoint, bytes.NewReader(fileContents))
 	request.Header.Add("Content-Type", http.DetectContentType(fileContents))
-
+	logg.LogTo(TagLog, "%s", syncEndpoint)
 	logRequest(request)
 
 	response, err := globalHTTP.Do(request)

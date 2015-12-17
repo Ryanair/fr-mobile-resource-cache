@@ -19,6 +19,8 @@ type Config struct {
 	ResourcesDir string `json:"resourcesDir"`
 	SyncURL      string `json:"syncUrl"`
 	Bucket       string `json:"bucket"`
+	Username     string `json:"username"`
+	Password     string `json:"password"`
 }
 
 //ConfigJSON represents global config properties
@@ -34,6 +36,8 @@ func (r ConfigJSON) Export() (Config, error) {
 	result.ResourcesDir = r.Resources.ResourcesDir
 	result.SyncURL = r.Resources.SyncURL
 	result.Bucket = r.Resources.Bucket
+	result.Username = r.Resources.Username
+	result.Password = r.Resources.Password
 
 	//set global DEBUG value
 	DEBUG = r.Debug

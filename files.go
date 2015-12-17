@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"hash/crc32"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -56,6 +57,10 @@ func scanResourcesDir() ([]LocalResource, error) {
 	return fileList, err
 }
 
+//readFileContents returns
+//file contents []byte
+//documentID string
+//error
 func readFileContents(file string) ([]byte, string, error) {
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -148,31 +153,51 @@ func updateJSONDoc(file LocalResource) (string, error) {
 func updateAttachment(file LocalResource) error {
 	var returnError error
 
-	syncDocument, _, err := getDocument(getDocumentID(file.FileName))
+	syncDocument, lastRev, err := getDocument(getDocumentID(file.FileName))
+
 	if err != nil {
 		returnError = fmt.Errorf("Error reading sync document: %v", err)
 	}
 
-	if len(syncDocument) == 0 || syncDocument == nil || 1 == 1 {
-		fileBody, _, err := readFileContents(file.FileName)
+	fileBody, docID, err := readFileContents(file.FileName)
 
+	//create a new document
+	if len(syncDocument) == 0 || syncDocument == nil {
 		if err != nil {
-			returnError = fmt.Errorf("Error reading attachment: %s", err)
-			return returnError
+			return fmt.Errorf("Error reading attachment: %s", err)
 		}
 
 		// TODO: check if we have a json file with the same name as the attachment,
 		//and use it as a parent for the attachment, otherwise use the default template
 		err = postDocument([]byte(DefaultAttachmentDoc), getDocumentID(file.FileName))
+		if err != nil {
+			return fmt.Errorf("Error saving document: %v", err)
+		}
 
 		// TODO: do that only for new files, otherwise extract from first document read
 		_, rev, err := getDocument(getDocumentID(file.FileName))
-
 		if err != nil {
-			returnError = fmt.Errorf("Error saving document: %v", err)
+			returnError = err
 		}
 
-		err = postAttachment(fileBody, getDocumentID(file.FileName), filepath.Base(file.FileName)+"?rev="+rev)
+		if rev != "" {
+			err = postAttachment(fileBody, getDocumentID(file.FileName), filepath.Base(file.FileName)+"?rev="+rev)
+		}
+	} else {
+		// generate file checksum
+		remoteAttachmentURL := config.SyncURL + "/" + config.Bucket + "/" + docID + "/" + filepath.Base(file.FileName)
+		remoteFile, err := readResource(remoteAttachmentURL)
+		if err != nil {
+			returnError = err
+		}
+
+		crc := crc32.ChecksumIEEE(fileBody)
+		crcRemote := crc32.ChecksumIEEE(remoteFile)
+
+		// update an exsisting document
+		if crc != crcRemote && lastRev != "" {
+			err = postAttachment(fileBody, getDocumentID(file.FileName), filepath.Base(file.FileName)+"?rev="+lastRev)
+		}
 	}
 
 	return returnError

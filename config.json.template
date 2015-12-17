@@ -3,7 +3,9 @@
     "resources" : {
         "resourcesDir": "/path/to/resource-dir",
         "syncUrl": "http://localhost:4985",
-        "bucket": "default"
+        "bucket": "default",
+        "username": "username",
+        "password": "password"
     },
     "default_attachment_doc" : "{\"key\": \"value\"}"
 }
