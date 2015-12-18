@@ -5,9 +5,17 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/couchbaselabs/logg"
 )
+
+//AuthResponse response from auth service
+type AuthResponse struct {
+	SessionID  string `json:"session_id"`
+	Expires    string `json:"expires"`
+	CookieName string `json:"cookie_name"`
+}
 
 var globalHTTP = &http.Client{}
 
@@ -87,6 +95,7 @@ func postAttachment(fileContents []byte, parentDoc string, documentName string) 
 	request, err := http.NewRequest("PUT", syncEndpoint, bytes.NewReader(fileContents))
 	request.Header.Add("Content-Type", http.DetectContentType(fileContents))
 	setAuth(request)
+
 	logg.LogTo(TagLog, "%s", syncEndpoint)
 	logRequest(request)
 
@@ -100,7 +109,57 @@ func postAttachment(fileContents []byte, parentDoc string, documentName string) 
 }
 
 func setAuth(request *http.Request) {
-	if config.Username != "" && config.Password != "" {
-		request.SetBasicAuth(config.Username, config.Password)
+	if authConfig.Username != "" && authConfig.Password != "" {
+		if authConfig.SimpleAuth {
+			request.SetBasicAuth(authConfig.Username, authConfig.Password)
+		} else {
+			session := authenticate()
+			layout := "2006-01-02T15:04:05Z07:00"
+			expire, err := time.Parse(layout, session.Expires)
+			if err != nil {
+				logg.LogPanic("Error parsing time: %v", err)
+			}
+
+			rawCookie := []string{"SyncGatewaySession=c8dfd8901892aa77770472e50500dc30dbadab93"}
+			maxAge := 0
+			secure := true
+			httpOnly := true
+			path := "/"
+
+			cookie := http.Cookie{session.CookieName, session.SessionID, path, config.SyncURL, expire, expire.Format(time.UnixDate), maxAge, secure, httpOnly, rawCookie[0], rawCookie}
+
+			request.AddCookie(&cookie)
+		}
 	}
+
+}
+
+//authenticate uses a custom service to authenticate against a credentials repository like Active Directory
+//and returns a session from sync gateway
+func authenticate() AuthResponse {
+	request, err := http.NewRequest("POST", authConfig.ServerURL, bytes.NewReader([]byte("{\"username\": \""+authConfig.Username+"\", \"password\": \""+authConfig.Password+"\"}")))
+
+	if err != nil {
+		logg.LogPanic("Error creating request: %v", err)
+	}
+
+	logRequest(request)
+
+	response, err := globalHTTP.Do(request)
+	if err != nil {
+		logg.LogPanic("Error authenticating: %v", err)
+	}
+
+	defer response.Body.Close()
+
+	authResponse := AuthResponse{}
+
+	document, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		logg.LogPanic("Error reading contents: %v", err)
+	}
+
+	json.Unmarshal(document, &authResponse)
+
+	return authResponse
 }

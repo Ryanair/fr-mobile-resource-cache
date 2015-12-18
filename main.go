@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	endpoint              string
 	configFileDescription = "The name of the config file.  Defaults to 'config.json'"
 	configFileName        = kingpin.Arg("config file name", configFileDescription).Default("config.json").String()
 )
