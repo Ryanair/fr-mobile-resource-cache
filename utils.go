@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"regexp"
 
 	"github.com/couchbaselabs/logg"
@@ -36,25 +35,6 @@ func cleanupSyncDocument(syncDocument []byte) ([]byte, error) {
 	return json.Marshal(document)
 }
 
-func getReadSyncEndpoint() string {
+func getSyncEndpoint() string {
 	return config.SyncURL + "/" + config.Bucket + "/"
-}
-
-func getWriteSyncEndpoint() string {
-	if config.Username != "" && config.Password != "" {
-		rawurl := config.SyncURL + "/" + config.Bucket + "/"
-
-		url, err := url.Parse(rawurl)
-
-		if err != nil {
-			logg.LogFatal("%s", err)
-		}
-
-		writeURL := url.Scheme + "://" + config.Username + ":" + config.Password + "@" + url.Host + url.Path
-
-		return writeURL
-	}
-
-	return config.SyncURL + "/" + config.Bucket + "/"
-
 }

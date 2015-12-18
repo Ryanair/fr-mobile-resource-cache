@@ -28,7 +28,7 @@ func readResource(url string) ([]byte, error) {
 // getDocument queries a document via sync gateway's REST API
 // and returns the document contents and last revision
 func getDocument(documentID string) ([]byte, string, error) {
-	var syncEndpoint = getReadSyncEndpoint() + documentID
+	var syncEndpoint = getSyncEndpoint() + documentID
 
 	result, err := readResource(syncEndpoint)
 
@@ -49,7 +49,7 @@ func getDocument(documentID string) ([]byte, string, error) {
 }
 
 func postDocument(document []byte, documentID string) error {
-	var syncEndpoint = getWriteSyncEndpoint() + documentID
+	var syncEndpoint = getSyncEndpoint() + documentID
 
 	_, rev, err := getDocument(documentID)
 
@@ -59,6 +59,7 @@ func postDocument(document []byte, documentID string) error {
 
 	request, err := http.NewRequest("PUT", syncEndpoint, bytes.NewReader(document))
 	request.ContentLength = int64(len(document))
+	setAuth(request)
 
 	logRequest(request)
 
@@ -81,10 +82,11 @@ func postDocument(document []byte, documentID string) error {
 }
 
 func postAttachment(fileContents []byte, parentDoc string, documentName string) error {
-	var syncEndpoint = getWriteSyncEndpoint() + parentDoc + "/" + documentName
+	var syncEndpoint = getSyncEndpoint() + parentDoc + "/" + documentName
 
 	request, err := http.NewRequest("PUT", syncEndpoint, bytes.NewReader(fileContents))
 	request.Header.Add("Content-Type", http.DetectContentType(fileContents))
+	setAuth(request)
 	logg.LogTo(TagLog, "%s", syncEndpoint)
 	logRequest(request)
 
@@ -95,4 +97,10 @@ func postAttachment(fileContents []byte, parentDoc string, documentName string) 
 	logg.LogTo(TagLog, "Post status code: %v", response.StatusCode)
 
 	return err
+}
+
+func setAuth(request *http.Request) {
+	if config.Username != "" && config.Password != "" {
+		request.SetBasicAuth(config.Username, config.Password)
+	}
 }
