@@ -120,7 +120,7 @@ func setAuth(request *http.Request) {
 				logg.LogPanic("Error parsing time: %v", err)
 			}
 
-			rawCookie := []string{"SyncGatewaySession=c8dfd8901892aa77770472e50500dc30dbadab93"}
+			rawCookie := []string{session.CookieName + "=" + session.SessionID}
 			maxAge := 0
 			secure := true
 			httpOnly := true
