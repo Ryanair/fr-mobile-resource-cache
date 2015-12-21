@@ -43,13 +43,6 @@ func scanResourcesDir() ([]LocalResource, error) {
 		//skip hidden files and directories
 		if !f.IsDir() && f.Name()[0:1] != "." {
 			localResource, err = newLocalResource(path)
-			// if filepath.Ext(f.Name()) == ".json" {
-			// 	localResource.FileName = path
-			// 	localResource.Type = JSONType
-			// } else {
-			// 	localResource.FileName = path
-			// 	localResource.Type = AttachmentType
-			// }
 		}
 
 		fileList = append(fileList, localResource)
@@ -58,6 +51,24 @@ func scanResourcesDir() ([]LocalResource, error) {
 	})
 
 	return fileList, err
+}
+
+func findFile(fileID string) (string, error) {
+	var filename string
+	err := filepath.Walk(config.ResourcesDir, func(path string, f os.FileInfo, err error) error {
+		//ignore git directory
+		if f.IsDir() && f.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		if getDocumentID(path) == fileID {
+			filename = path
+		}
+
+		return err
+	})
+
+	return filename, err
 }
 
 func getDirectories() ([]string, error) {
@@ -210,9 +221,15 @@ func updateAttachment(file LocalResource) error {
 			return fmt.Errorf("Error reading attachment: %s", err)
 		}
 
-		// TODO: check if we have a json file with the same name as the attachment,
-		//and use it as a parent for the attachment, otherwise use the default template
-		err = postDocument([]byte(DefaultAttachmentDoc), getDocumentID(file.FileName))
+		var postDocContents []byte
+		attachmentDoc, err := findFile(getDocumentID(file.FileName))
+		if attachmentDoc != "" {
+			postDocContents, _, err = readFileContents(attachmentDoc)
+		} else {
+			postDocContents = []byte(DefaultAttachmentDoc)
+		}
+
+		err = postDocument(postDocContents, getDocumentID(file.FileName))
 		if err != nil {
 			return fmt.Errorf("Error saving document: %v", err)
 		}
