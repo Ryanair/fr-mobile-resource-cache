@@ -3,6 +3,13 @@
     "resources" : {
         "resourcesDir": "/path/to/resource-dir",
         "syncUrl": "http://localhost:4985",
-        "bucket": "default"   
-    } 
+        "bucket": "default",
+        "auth" : {
+          "username": "username",
+          "password": "password",
+          "simpleAuth": true,
+          "serverUrl" : "https://my.authserver.com/auth"
+        }
+    },
+    "default_attachment_doc" : "{\"key\": \"value\"}"
 }

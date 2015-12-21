@@ -34,3 +34,7 @@ func cleanupSyncDocument(syncDocument []byte) ([]byte, error) {
 
 	return json.Marshal(document)
 }
+
+func getSyncEndpoint() string {
+	return config.SyncURL + "/" + config.Bucket + "/"
+}
