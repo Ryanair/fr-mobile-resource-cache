@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/couchbaselabs/logg"
 )
 
 //LocalResource represents the local document
@@ -40,13 +42,14 @@ func scanResourcesDir() ([]LocalResource, error) {
 
 		//skip hidden files and directories
 		if !f.IsDir() && f.Name()[0:1] != "." {
-			if filepath.Ext(f.Name()) == ".json" {
-				localResource.FileName = path
-				localResource.Type = JSONType
-			} else {
-				localResource.FileName = path
-				localResource.Type = AttachmentType
-			}
+			localResource, err = newLocalResource(path)
+			// if filepath.Ext(f.Name()) == ".json" {
+			// 	localResource.FileName = path
+			// 	localResource.Type = JSONType
+			// } else {
+			// 	localResource.FileName = path
+			// 	localResource.Type = AttachmentType
+			// }
 		}
 
 		fileList = append(fileList, localResource)
@@ -55,6 +58,45 @@ func scanResourcesDir() ([]LocalResource, error) {
 	})
 
 	return fileList, err
+}
+
+func getDirectories() ([]string, error) {
+	var dirList []string
+	err := filepath.Walk(config.ResourcesDir, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		//ignore git directory
+		if f.IsDir() && f.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		//skip hidden files and directories
+		if f.IsDir() && f.Name()[0:1] != "." {
+			dirList = append(dirList, path)
+		}
+
+		return err
+	})
+
+	return dirList, err
+}
+
+func newLocalResource(path string) (LocalResource, error) {
+	var localResource LocalResource
+
+	f, err := os.Stat(path)
+
+	if filepath.Ext(f.Name()) == ".json" {
+		localResource.FileName = path
+		localResource.Type = JSONType
+	} else {
+		localResource.FileName = path
+		localResource.Type = AttachmentType
+	}
+
+	return localResource, err
 }
 
 //readFileContents returns
@@ -88,7 +130,7 @@ func patchFiles(files []LocalResource) ([]string, error) {
 	)
 
 	for _, file := range files {
-		if file == (LocalResource{}) {
+		if file == (LocalResource{}) || file.FileName[0:1] == "." {
 			continue
 		}
 
@@ -101,6 +143,7 @@ func patchFiles(files []LocalResource) ([]string, error) {
 
 			patches = append(patches, patch)
 		} else {
+			logg.LogTo(TagLog, "Trying to update %v", file)
 			err := updateAttachment(file)
 			if err != nil {
 				returnError = err
