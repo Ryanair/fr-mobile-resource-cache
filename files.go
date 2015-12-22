@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/couchbaselabs/logg"
 )
 
 //LocalResource represents the local document
@@ -40,13 +42,7 @@ func scanResourcesDir() ([]LocalResource, error) {
 
 		//skip hidden files and directories
 		if !f.IsDir() && f.Name()[0:1] != "." {
-			if filepath.Ext(f.Name()) == ".json" {
-				localResource.FileName = path
-				localResource.Type = JSONType
-			} else {
-				localResource.FileName = path
-				localResource.Type = AttachmentType
-			}
+			localResource, err = newLocalResource(path)
 		}
 
 		fileList = append(fileList, localResource)
@@ -55,6 +51,63 @@ func scanResourcesDir() ([]LocalResource, error) {
 	})
 
 	return fileList, err
+}
+
+func findFile(fileID string) (string, error) {
+	var filename string
+	err := filepath.Walk(config.ResourcesDir, func(path string, f os.FileInfo, err error) error {
+		//ignore git directory
+		if f.IsDir() && f.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		if getDocumentID(path) == fileID {
+			filename = path
+		}
+
+		return err
+	})
+
+	return filename, err
+}
+
+func getDirectories() ([]string, error) {
+	var dirList []string
+	err := filepath.Walk(config.ResourcesDir, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		//ignore git directory
+		if f.IsDir() && f.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		//skip hidden files and directories
+		if f.IsDir() && f.Name()[0:1] != "." {
+			dirList = append(dirList, path)
+		}
+
+		return err
+	})
+
+	return dirList, err
+}
+
+func newLocalResource(path string) (LocalResource, error) {
+	var localResource LocalResource
+
+	f, err := os.Stat(path)
+
+	if filepath.Ext(f.Name()) == ".json" {
+		localResource.FileName = path
+		localResource.Type = JSONType
+	} else {
+		localResource.FileName = path
+		localResource.Type = AttachmentType
+	}
+
+	return localResource, err
 }
 
 //readFileContents returns
@@ -88,7 +141,7 @@ func patchFiles(files []LocalResource) ([]string, error) {
 	)
 
 	for _, file := range files {
-		if file == (LocalResource{}) {
+		if file == (LocalResource{}) || file.FileName[0:1] == "." {
 			continue
 		}
 
@@ -101,6 +154,7 @@ func patchFiles(files []LocalResource) ([]string, error) {
 
 			patches = append(patches, patch)
 		} else {
+			logg.LogTo(TagLog, "Trying to update %v", file)
 			err := updateAttachment(file)
 			if err != nil {
 				returnError = err
@@ -167,9 +221,15 @@ func updateAttachment(file LocalResource) error {
 			return fmt.Errorf("Error reading attachment: %s", err)
 		}
 
-		// TODO: check if we have a json file with the same name as the attachment,
-		//and use it as a parent for the attachment, otherwise use the default template
-		err = postDocument([]byte(DefaultAttachmentDoc), getDocumentID(file.FileName))
+		var postDocContents []byte
+		attachmentDoc, err := findFile(getDocumentID(file.FileName))
+		if attachmentDoc != "" {
+			postDocContents, _, err = readFileContents(attachmentDoc)
+		} else {
+			postDocContents = []byte(DefaultAttachmentDoc)
+		}
+
+		err = postDocument(postDocContents, getDocumentID(file.FileName))
 		if err != nil {
 			return fmt.Errorf("Error saving document: %v", err)
 		}

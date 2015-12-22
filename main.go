@@ -2,10 +2,13 @@ package main
 
 import (
 	"bufio"
+	"log"
 	"os"
 
 	"github.com/alecthomas/kingpin"
 	"github.com/couchbaselabs/logg"
+
+	"github.com/go-fsnotify/fsnotify"
 )
 
 var (
@@ -43,6 +46,7 @@ func init() {
 }
 
 func main() {
+	//first time scan of the directories
 	files, err := scanResourcesDir()
 
 	if err != nil {
@@ -58,4 +62,48 @@ func main() {
 	if len(patch) > 0 {
 		logg.LogTo(TagDiff, "%s", patch)
 	}
+
+	//register the fs watcher
+	// TODO: refactor to get rid of the double recursion in the fist run of the app
+	dirList, err := getDirectories()
+	if err != nil {
+		logg.LogPanic("Error scanning directories : %v", err)
+	}
+
+	newFolderWatcher(dirList)
+}
+
+func newFolderWatcher(dirList []string) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				logg.LogTo(TagLog, "New Event %v", event)
+				//rename reports the old filename
+				if event.Op&fsnotify.Remove != fsnotify.Remove && event.Op&fsnotify.Rename != fsnotify.Rename {
+					localResource, _ := newLocalResource(event.Name)
+					patchFiles([]LocalResource{localResource})
+				}
+				// TODO: handle deletes
+			case err := <-watcher.Errors:
+				logg.LogTo(TagError, "%v", err)
+			}
+		}
+	}()
+
+	for _, dir := range dirList {
+		logg.LogTo(TagLog, "attaching watcher to %s", dir)
+		err = watcher.Add(dir)
+		if err != nil {
+			logg.LogPanic("Error attaching fs watcher : %v", err)
+		}
+	}
+	<-done
 }
