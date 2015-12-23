@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"os"
-	"path/filepath"
+
+	"github.com/couchbaselabs/logg"
 )
 
 //JSONType specifies the local file to be of type json
@@ -24,31 +24,74 @@ type LocalResource struct {
 	Attachment string
 }
 
-//NewLocalResource creates a LocalResource object from a given file path
-func NewLocalResource(path string) (LocalResource, error) {
+//NewLocalDocument creates a LocalResource object from a given file path
+func NewLocalDocument(path string, resourceList *[]LocalResource) error {
 	var localResource LocalResource
 
-	f, err := os.Stat(path)
+	localResource.FileName = path
+	localResource.Type = JSONType
 
-	if filepath.Ext(f.Name()) == ".json" {
-		localResource.FileName = path
-		localResource.Type = JSONType
-
-		contents, documentID, err := readFileContents(path)
-		if err != nil {
-			return localResource, err
-		}
-
-		localResource.Content = contents
-		localResource.ResourceID = documentID
-
-	} else {
-		// TODO: find the parent document, if there's one
-		// localResource.FileName = path
-		// localResource.Type = AttachmentType
+	contents, documentID, err := readFileContents(path)
+	if err != nil {
+		return err
 	}
 
-	return localResource, err
+	localResource.Content = contents
+	localResource.ResourceID = documentID
+
+	*resourceList = append(*resourceList, localResource)
+
+	return err
+}
+
+//NewLocalAttachment ..
+func NewLocalAttachment(path string, resourceList *[]LocalResource) error {
+	documentID := getDocumentID(path)
+	result := SearchLocalResource(resourceList, documentID)
+
+	if result.compare(LocalResource{}) {
+		logg.LogTo(TagLog, "Parent document not found, creating a new one ...")
+		var localResource LocalResource
+		localResource.FileName = path
+		localResource.Type = AttachmentType
+		localResource.Attachment = path
+		localResource.Content = []byte(DefaultAttachmentDoc)
+		localResource.ResourceID = documentID
+
+		*resourceList = append(*resourceList, localResource)
+	} else {
+		logg.LogTo(TagLog, "Parent document found %s", result.ResourceID)
+		result.Attachment = path
+	}
+
+	// var localResource LocalResource
+	//
+	// localResource.FileName = path
+	// localResource.Type = AttachmentType
+	//
+	// contents, documentID, err := readFileContents(path)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// localResource.Content = contents
+	// localResource.ResourceID = documentID
+	//
+	// *resourceList = append(*resourceList, localResource)
+
+	return nil
+}
+
+//SearchLocalResource searches for a specific documentID in a LocalResource slice and returns the index of the found element
+//-1 if no results are found
+func SearchLocalResource(resourceList *[]LocalResource, documentID string) LocalResource {
+	for _, resource := range *resourceList {
+		if resource.ResourceID == documentID {
+			return resource
+		}
+	}
+
+	return LocalResource{}
 }
 
 func (a LocalResource) compare(b LocalResource) bool {

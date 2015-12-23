@@ -12,9 +12,9 @@ import (
 )
 
 //scanResourcesDir scans the root directory from config.json
-//and returns all json files, ignoring .git
-func scanResourcesDir() ([]LocalResource, error) {
-	fileList := []LocalResource{}
+//and returns all json and binary files, ignoring .git
+func scanResourcesDir() ([]string, error) {
+	var fileList []string
 	err := filepath.Walk(config.ResourcesDir, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -25,19 +25,43 @@ func scanResourcesDir() ([]LocalResource, error) {
 			return filepath.SkipDir
 		}
 
-		var localResource LocalResource
-
 		//skip hidden files and directories
 		if !f.IsDir() && f.Name()[0:1] != "." {
-			localResource, err = NewLocalResource(path)
+			fileList = append(fileList, path)
 		}
-
-		fileList = append(fileList, localResource)
 
 		return err
 	})
 
 	return fileList, err
+}
+
+func getLocalResources() ([]LocalResource, error) {
+	files, err := scanResourcesDir()
+
+	var result []LocalResource
+
+	//first pass, get all json documents
+	for _, file := range files {
+		if filepath.Ext(file) == ".json" {
+			err := NewLocalDocument(file, &result)
+			if err != nil {
+				continue
+			}
+		}
+	}
+
+	//second pass, get all attachments
+	for _, file := range files {
+		if filepath.Ext(file) != ".json" {
+			err := NewLocalAttachment(file, &result)
+			if err != nil {
+				continue
+			}
+		}
+	}
+
+	return result, err
 }
 
 func findFile(fileID string) (string, error) {
