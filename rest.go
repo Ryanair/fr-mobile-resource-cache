@@ -50,7 +50,9 @@ func getDocument(documentID string) ([]byte, string, error) {
 	rev, ok := jsonObject["_rev"].(string)
 
 	if ok {
-		return result, rev, nil
+		//cleanup the remote document
+		result, err = cleanupSyncDocument(result)
+		return result, rev, err
 	}
 
 	return nil, "", nil

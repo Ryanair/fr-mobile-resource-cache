@@ -44,9 +44,10 @@ func init() {
 
 func main() {
 	resources, _ := getLocalResources()
-	for _, resource := range resources {
-		logg.LogTo(TagLog, "DocumentID : %s ; FileName : %s ; Attachment : %s ; Content : %s", resource.ResourceID, resource.FileName, resource.Attachment, string(resource.Content))
-	}
+	patchFiles(resources)
+	// for _, resource := range resources {
+	// 	logg.LogTo(TagLog, "DocumentID : %s ; FileName : %s ; Attachment : %s ; Content : %s", resource.ResourceID, resource.FileName, resource.Attachment, string(resource.Content))
+	// }
 	//first time scan of the directories
 	// files, err := getLocalResources()
 	//

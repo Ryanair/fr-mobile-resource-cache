@@ -136,28 +136,50 @@ func patchFiles(files []LocalResource) ([]string, error) {
 	)
 
 	for _, file := range files {
-		if file.compare(LocalResource{}) || file.FileName[0:1] == "." {
+		patch, err := file.updateDoc()
+		if err != nil {
+			returnError = err
 			continue
 		}
-
-		if file.Type == JSONType {
-			patch, err := updateJSONDoc(file)
-			if err != nil {
-				returnError = err
-				continue
-			}
-
-			patches = append(patches, patch)
-		} else {
-			logg.LogTo(TagLog, "Trying to update %v", file)
-			err := updateAttachment(file)
-			if err != nil {
-				returnError = err
-			}
-		}
+		patches = append(patches, patch)
+		// if file.Type == JSONType {
+		// 	patch, err := updateJSONDoc(file)
+		// 	if err != nil {
+		// 		returnError = err
+		// 		continue
+		// 	}
+		//
+		// 	patches = append(patches, patch)
+		// } else {
+		// 	logg.LogTo(TagLog, "Trying to update %v", file)
+		// 	err := updateAttachment(file)
+		// 	if err != nil {
+		// 		returnError = err
+		// 	}
+		// }
 	}
 
 	return patches, returnError
+}
+
+func (localResource LocalResource) updateDoc() (string, error) {
+	var patch []byte
+	syncDocument, rev, err := getDocument(localResource.ResourceID)
+	if err != nil {
+		return "", err
+	}
+
+	//if the document does not exist, or there is a difference in revisions, post it
+	if (len(syncDocument) == 0 || syncDocument == nil) || !compare(localResource.Content, syncDocument) {
+		patch, err = diff(localResource.Content, syncDocument)
+
+		// TODO: figure out the attachments
+		err = postDocument(localResource.Content, localResource.ResourceID)
+
+		logg.LogTo(TagLog, "Patch: %s; rev: %s", string(patch), rev)
+	}
+
+	return string(patch), err
 }
 
 func updateJSONDoc(localResource LocalResource) (string, error) {
