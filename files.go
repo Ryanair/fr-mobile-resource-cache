@@ -11,19 +11,6 @@ import (
 	"github.com/couchbaselabs/logg"
 )
 
-//LocalResource represents the local document
-//can be json or attachment
-type LocalResource struct {
-	FileName string
-	Type     string
-}
-
-//JSONType specifies the local file to be of type json
-var JSONType = "json"
-
-//AttachmentType specifies the local file to be of type json
-var AttachmentType = "attachment"
-
 //scanResourcesDir scans the root directory from config.json
 //and returns all json files, ignoring .git
 func scanResourcesDir() ([]LocalResource, error) {
@@ -42,7 +29,7 @@ func scanResourcesDir() ([]LocalResource, error) {
 
 		//skip hidden files and directories
 		if !f.IsDir() && f.Name()[0:1] != "." {
-			localResource, err = newLocalResource(path)
+			localResource, err = NewLocalResource(path)
 		}
 
 		fileList = append(fileList, localResource)
@@ -94,25 +81,9 @@ func getDirectories() ([]string, error) {
 	return dirList, err
 }
 
-func newLocalResource(path string) (LocalResource, error) {
-	var localResource LocalResource
-
-	f, err := os.Stat(path)
-
-	if filepath.Ext(f.Name()) == ".json" {
-		localResource.FileName = path
-		localResource.Type = JSONType
-	} else {
-		localResource.FileName = path
-		localResource.Type = AttachmentType
-	}
-
-	return localResource, err
-}
-
-//readFileContents returns
-//file contents []byte
-//documentID string
+//readFileContents @file - path to input file
+//[]byte - file contents
+//string - documentID
 //error
 func readFileContents(file string) ([]byte, string, error) {
 	b, err := ioutil.ReadFile(file)
@@ -141,7 +112,7 @@ func patchFiles(files []LocalResource) ([]string, error) {
 	)
 
 	for _, file := range files {
-		if file == (LocalResource{}) || file.FileName[0:1] == "." {
+		if file.compare(LocalResource{}) || file.FileName[0:1] == "." {
 			continue
 		}
 
@@ -165,20 +136,13 @@ func patchFiles(files []LocalResource) ([]string, error) {
 	return patches, returnError
 }
 
-func updateJSONDoc(file LocalResource) (string, error) {
+func updateJSONDoc(localResource LocalResource) (string, error) {
 	var (
 		returnError error
 		patch       []byte
 	)
 
-	localDocument, fileName, err := readFileContents(file.FileName)
-
-	if err != nil {
-		// log the error, don't stop execution if a file fails to read
-		returnError = fmt.Errorf("Error reading file contents: %v", err)
-	}
-
-	syncDocument, _, err := getDocument(fileName)
+	syncDocument, _, err := getDocument(localResource.ResourceID)
 	if err != nil {
 		returnError = fmt.Errorf("Error reading sync document: %v", err)
 	}
@@ -189,13 +153,13 @@ func updateJSONDoc(file LocalResource) (string, error) {
 	}
 
 	//if the document does not exist, or there is a difference in revisions, post it
-	if (len(syncDocument) == 0 || syncDocument == nil) || !compare(localDocument, syncDocument) {
-		patch, err = diff(localDocument, syncDocument)
+	if (len(syncDocument) == 0 || syncDocument == nil) || !compare(localResource.Content, syncDocument) {
+		patch, err = diff(localResource.Content, syncDocument)
 		if err != nil && len(syncDocument) > 0 {
 			returnError = fmt.Errorf("Error generating patch: %v", err)
 		}
 
-		err = postDocument(localDocument, fileName)
+		err = postDocument(localResource.Content, localResource.ResourceID)
 		if err != nil {
 			returnError = fmt.Errorf("Error saving document: %v", err)
 		}

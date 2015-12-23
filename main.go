@@ -65,12 +65,12 @@ func main() {
 
 	//register the fs watcher
 	// TODO: refactor to get rid of the double recursion in the fist run of the app
-	dirList, err := getDirectories()
-	if err != nil {
-		logg.LogPanic("Error scanning directories : %v", err)
-	}
-
-	newFolderWatcher(dirList)
+	// dirList, err := getDirectories()
+	// if err != nil {
+	// 	logg.LogPanic("Error scanning directories : %v", err)
+	// }
+	//
+	// newFolderWatcher(dirList)
 }
 
 func newFolderWatcher(dirList []string) {
@@ -88,7 +88,7 @@ func newFolderWatcher(dirList []string) {
 				logg.LogTo(TagLog, "New Event %v", event)
 				//rename reports the old filename
 				if event.Op&fsnotify.Remove != fsnotify.Remove && event.Op&fsnotify.Rename != fsnotify.Rename {
-					localResource, _ := newLocalResource(event.Name)
+					localResource, _ := NewLocalResource(event.Name)
 					patchFiles([]LocalResource{localResource})
 				}
 				// TODO: handle deletes
