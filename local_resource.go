@@ -47,9 +47,9 @@ func NewLocalDocument(path string, resourceList *[]LocalResource) error {
 //NewLocalAttachment ..
 func NewLocalAttachment(path string, resourceList *[]LocalResource) error {
 	documentID := getDocumentID(path)
-	result := SearchLocalResource(resourceList, documentID)
+	result := ResourceIndexAt(resourceList, documentID)
 
-	if result.compare(LocalResource{}) {
+	if result == -1 {
 		logg.LogTo(TagLog, "Parent document not found, creating a new one ...")
 		var localResource LocalResource
 		localResource.FileName = path
@@ -60,38 +60,23 @@ func NewLocalAttachment(path string, resourceList *[]LocalResource) error {
 
 		*resourceList = append(*resourceList, localResource)
 	} else {
-		logg.LogTo(TagLog, "Parent document found %s", result.ResourceID)
-		result.Attachment = path
+		logg.LogTo(TagLog, "Parent document found at %d", result)
+		(*resourceList)[result].Attachment = path
 	}
-
-	// var localResource LocalResource
-	//
-	// localResource.FileName = path
-	// localResource.Type = AttachmentType
-	//
-	// contents, documentID, err := readFileContents(path)
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// localResource.Content = contents
-	// localResource.ResourceID = documentID
-	//
-	// *resourceList = append(*resourceList, localResource)
 
 	return nil
 }
 
-//SearchLocalResource searches for a specific documentID in a LocalResource slice and returns the index of the found element
-//-1 if no results are found
-func SearchLocalResource(resourceList *[]LocalResource, documentID string) LocalResource {
-	for _, resource := range *resourceList {
+//ResourceIndexAt searches for a specific documentID in a LocalResource slice and returns the index of the found element
+//-1 if no result is found
+func ResourceIndexAt(resourceList *[]LocalResource, documentID string) int {
+	for i, resource := range *resourceList {
 		if resource.ResourceID == documentID {
-			return resource
+			return i
 		}
 	}
 
-	return LocalResource{}
+	return -1
 }
 
 func (a LocalResource) compare(b LocalResource) bool {
