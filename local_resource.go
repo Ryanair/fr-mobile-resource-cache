@@ -26,22 +26,32 @@ type LocalResource struct {
 
 //NewLocalDocument creates a LocalResource object from a given file path
 func NewLocalDocument(path string, resourceList *[]LocalResource) error {
-	var localResource LocalResource
+	documentID := getDocumentID(path)
+	result := ResourceIndexAt(resourceList, documentID)
+	if result == -1 {
+		var localResource LocalResource
 
-	localResource.FileName = path
-	localResource.Type = JSONType
+		localResource.FileName = path
+		localResource.Type = JSONType
 
-	contents, documentID, err := readFileContents(path)
-	if err != nil {
-		return err
+		contents, documentID, err := readFileContents(path)
+		if err != nil {
+			return err
+		}
+
+		localResource.Content = contents
+		localResource.ResourceID = documentID
+
+		*resourceList = append(*resourceList, localResource)
+	} else {
+		contents, _, err := readFileContents(path)
+		(*resourceList)[result].Content = contents
+		if err != nil {
+			return err
+		}
 	}
 
-	localResource.Content = contents
-	localResource.ResourceID = documentID
-
-	*resourceList = append(*resourceList, localResource)
-
-	return err
+	return nil
 }
 
 //NewLocalAttachment ..
