@@ -19,20 +19,20 @@ func cleanupSyncDocument(syncDocument []byte) ([]byte, error) {
 		return nil, nil
 	}
 
-	document := make(map[string]interface{})
-	err := json.Unmarshal(syncDocument, &document)
+	cleanDocument := make(map[string]interface{})
+	err := json.Unmarshal(syncDocument, &cleanDocument)
 
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range document {
-		if m, err := regexp.MatchString("_([a-z]+)", i); m == true && err == nil {
-			delete(document, i)
+	for i := range cleanDocument {
+		if m, err := regexp.MatchString("^_([a-z]+)", i); m == true && err == nil {
+			delete(cleanDocument, i)
 		}
 	}
 
-	return json.Marshal(document)
+	return json.Marshal(cleanDocument)
 }
 
 func getSyncEndpoint() string {

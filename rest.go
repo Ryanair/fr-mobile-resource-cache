@@ -50,13 +50,15 @@ func getDocument(documentID string) ([]byte, string, error) {
 	rev, ok := jsonObject["_rev"].(string)
 
 	if ok {
-		return result, rev, nil
+		//cleanup the remote document
+		result, err = cleanupSyncDocument(result)
+		return result, rev, err
 	}
 
 	return nil, "", nil
 }
 
-func postDocument(document []byte, documentID string) error {
+func postDocument(document []byte, documentID string) (string, error) {
 	var syncEndpoint = getSyncEndpoint() + documentID
 
 	_, rev, err := getDocument(documentID)
@@ -74,19 +76,32 @@ func postDocument(document []byte, documentID string) error {
 	response, err := globalHTTP.Do(request)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	defer response.Body.Close()
 	contents, err := ioutil.ReadAll(response.Body)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	logg.LogTo(TagLog, "%s", contents)
 
-	return nil
+	var jsonObject map[string]interface{}
+	err = json.Unmarshal(contents, &jsonObject)
+
+	if err != nil {
+		return "", err
+	}
+
+	rev, ok := jsonObject["rev"].(string)
+
+	if ok {
+		return rev, err
+	}
+
+	return "", nil
 }
 
 func postAttachment(fileContents []byte, parentDoc string, documentName string) error {
@@ -97,7 +112,7 @@ func postAttachment(fileContents []byte, parentDoc string, documentName string) 
 	setAuth(request)
 
 	logg.LogTo(TagLog, "%s", syncEndpoint)
-	logRequest(request)
+	// logRequest(request)
 
 	response, err := globalHTTP.Do(request)
 
