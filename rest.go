@@ -112,7 +112,6 @@ func postAttachment(fileContents []byte, parentDoc string, documentName string) 
 	setAuth(request)
 
 	logg.LogTo(TagLog, "%s", syncEndpoint)
-	// logRequest(request)
 
 	response, err := globalHTTP.Do(request)
 

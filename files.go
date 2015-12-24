@@ -25,7 +25,7 @@ func scanResourcesDir() ([]string, error) {
 		}
 
 		//skip hidden files and directories
-		if !f.IsDir() && f.Name()[0:1] != "." {
+		if !f.IsDir() && !isHidden(f.Name()) {
 			fileList = append(fileList, path)
 		}
 
@@ -64,7 +64,7 @@ func getLocalResources() ([]LocalResource, error) {
 
 	//first pass, get all json documents
 	for _, file := range files {
-		if filepath.Ext(file) == ".json" {
+		if isJSON(file) {
 			err := NewLocalDocument(file, &result)
 			if err != nil {
 				continue
@@ -74,7 +74,7 @@ func getLocalResources() ([]LocalResource, error) {
 
 	//second pass, get all attachments
 	for _, file := range files {
-		if filepath.Ext(file) != ".json" {
+		if !isJSON(file) {
 			err := NewLocalAttachment(file, &result)
 			if err != nil {
 				continue
@@ -83,6 +83,14 @@ func getLocalResources() ([]LocalResource, error) {
 	}
 
 	return result, err
+}
+
+func isJSON(path string) bool {
+	return filepath.Ext(path) == ".json"
+}
+
+func isHidden(file string) bool {
+	return file[0:1] == "."
 }
 
 //readFileContents @file - path to input file
