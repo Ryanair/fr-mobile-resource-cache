@@ -35,6 +35,28 @@ func scanResourcesDir() ([]string, error) {
 	return fileList, err
 }
 
+func getDirectories() ([]string, error) {
+	var dirList []string
+	err := filepath.Walk(config.ResourcesDir, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		//ignore git directory
+		if f.IsDir() && f.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		if f.IsDir() {
+			dirList = append(dirList, path)
+		}
+
+		return err
+	})
+
+	return dirList, err
+}
+
 func getLocalResources() ([]LocalResource, error) {
 	files, err := scanResourcesDir()
 

@@ -9,6 +9,7 @@ import (
 var DEBUG bool
 var config Config
 var authConfig Auth
+var webPort = 8181
 
 //DefaultAttachmentDoc is used as a template
 //for attachment documents. If no attachment doc exists,
@@ -26,6 +27,7 @@ type Config struct {
 //ConfigJSON represents global config properties
 type ConfigJSON struct {
 	Debug                bool   `json:"debug"`
+	WebPort              int    `json:"webPort"`
 	Resources            Config `json:"resources"`
 	DefaultAttachmentDoc string `json:"default_attachment_doc"`
 }
@@ -58,6 +60,8 @@ func (r ConfigJSON) Export() (Config, error) {
 
 	//set default attachment document
 	DefaultAttachmentDoc = r.DefaultAttachmentDoc
+
+	webPort = r.WebPort
 
 	return result, nil
 }
