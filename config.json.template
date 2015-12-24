@@ -1,5 +1,6 @@
 {
     "debug" : true,
+    "webPort" : 8181,
     "resources" : {
         "resourcesDir": "/path/to/resource-dir",
         "syncUrl": "http://localhost:4985",
