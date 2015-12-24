@@ -87,7 +87,7 @@ func newFolderWatcher(dirList []string) {
 			select {
 			case event := <-watcher.Events:
 				logg.LogTo(TagLog, "New Event %v", event)
-				//rename reports the old filename
+
 				if event.Op&fsnotify.Chmod == fsnotify.Chmod {
 					f, _ := os.Stat(event.Name)
 					if isJSON(f.Name()) && !isHidden(f.Name()) {
@@ -102,8 +102,14 @@ func newFolderWatcher(dirList []string) {
 						patchFiles(resources)
 					}
 				}
-				// TODO: handle deletes
 
+				if event.Op&fsnotify.Rename == fsnotify.Rename {
+					documentID := getDocumentID(event.Name)
+					err := deleteDocument(documentID)
+					if err != nil {
+						logg.LogTo(TagError, "Error deleting document : %v", err)
+					}
+				}
 			case err := <-watcher.Errors:
 				logg.LogTo(TagError, "%v", err)
 			}

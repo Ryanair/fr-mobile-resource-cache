@@ -104,6 +104,31 @@ func postDocument(document []byte, documentID string) (string, error) {
 	return "", nil
 }
 
+func deleteDocument(documentID string) error {
+	var syncEndpoint = getSyncEndpoint() + documentID
+
+	_, rev, err := getDocument(documentID)
+
+	if rev != "" {
+		syncEndpoint += "?rev=" + rev
+	}
+
+	request, err := http.NewRequest("DELETE", syncEndpoint, nil)
+	setAuth(request)
+
+	logRequest(request)
+
+	response, err := globalHTTP.Do(request)
+
+	if err != nil {
+		return err
+	}
+
+	defer response.Body.Close()
+
+	return err
+}
+
 func postAttachment(fileContents []byte, parentDoc string, documentName string) error {
 	var syncEndpoint = getSyncEndpoint() + parentDoc + "/" + documentName
 
