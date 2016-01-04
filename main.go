@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	_ "expvar"
 	"fmt"
 	"log"
 	"net"
