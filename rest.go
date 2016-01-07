@@ -36,6 +36,18 @@ func readResource(url string) ([]byte, error) {
 // getDocument queries a document via sync gateway's REST API
 // and returns the document contents and last revision
 func getDocument(documentID string) ([]byte, string, error) {
+
+	result, rev, err := getRawDocument(documentID)
+	if err != nil {
+		return result, rev, err
+	}
+
+	//cleanup the remote document
+	result, err = cleanupSyncDocument(result)
+	return result, rev, err
+}
+
+func getRawDocument(documentID string) ([]byte, string, error) {
 	var syncEndpoint = getSyncEndpoint() + documentID
 
 	result, err := readResource(syncEndpoint)
@@ -47,15 +59,9 @@ func getDocument(documentID string) ([]byte, string, error) {
 		return nil, "", err
 	}
 
-	rev, ok := jsonObject["_rev"].(string)
+	rev, _ := jsonObject["_rev"].(string)
 
-	if ok {
-		//cleanup the remote document
-		result, err = cleanupSyncDocument(result)
-		return result, rev, err
-	}
-
-	return nil, "", nil
+	return result, rev, nil
 }
 
 func postDocument(document []byte, documentID string) (string, error) {
@@ -201,4 +207,25 @@ func authenticate() AuthResponse {
 	json.Unmarshal(document, &authResponse)
 
 	return authResponse
+}
+
+func getAttachmentDigest(documentID, attachment string) (string, error) {
+	doc, _, err := getRawDocument(documentID)
+	if err != nil {
+		return "", err
+	}
+
+	var jsonObject map[string]interface{}
+	err = json.Unmarshal(doc, &jsonObject)
+
+	if err != nil {
+		return "", err
+	}
+
+	att, _ := jsonObject["_attachments"].(map[string]interface{})
+	attContent, _ := att[attachment].(map[string]interface{})
+
+	result, _ := attContent["digest"].(string)
+
+	return result, err
 }

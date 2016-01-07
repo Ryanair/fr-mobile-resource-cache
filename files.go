@@ -1,7 +1,8 @@
 package main
 
 import (
-	"hash/crc32"
+	"crypto/sha1"
+	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -189,14 +190,16 @@ func attachmentNeedsUpdate(path string) (bool, error) {
 		return false, err
 	}
 
-	remoteAttachmentURL := config.SyncURL + "/" + config.Bucket + "/" + documentID + "/" + filepath.Base(path)
-	remoteFile, err := readResource(remoteAttachmentURL)
+	digest, err := getAttachmentDigest(documentID, filepath.Base(path))
 	if err != nil {
 		return false, err
 	}
 
-	crc := crc32.ChecksumIEEE(body)
-	crcRemote := crc32.ChecksumIEEE(remoteFile)
+	return sha1DigestKey(body) != digest, nil
+}
 
-	return crc != crcRemote, nil
+func sha1DigestKey(data []byte) string {
+	digester := sha1.New()
+	digester.Write(data)
+	return "sha1-" + base64.StdEncoding.EncodeToString(digester.Sum(nil))
 }
