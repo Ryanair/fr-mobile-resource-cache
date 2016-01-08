@@ -9,3 +9,5 @@ The service listens for changes in a directory and generates new revisions, whic
 You can find a demo project in this [**repository**](https://github.com/Ryanair/resource-sync-example/tree/master).
 
 ![](http://i284.photobucket.com/albums/ll17/Vlado_Atanasov/go_resource_update_zps61xhoepx.png)
+
+![](http://i284.photobucket.com/albums/ll17/Vlado_Atanasov/animation_zpssxqbookb.gif)
