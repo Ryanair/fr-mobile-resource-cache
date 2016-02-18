@@ -32,6 +32,6 @@ func TestDiff(t *testing.T) {
 
 	str := string(patch)
 	if str != `{"key":"value1"}` {
-		t.Errorf("diff assertion failed")
+		t.Error("diff assertion failed")
 	}
 }

@@ -22,7 +22,7 @@ func TestCleanupSyncDocument(t *testing.T) {
 	err = json.Unmarshal(result, &jsonObject)
 
 	if err != nil {
-		t.Errorf("Error parsing cleanupSyncDocument result", err)
+		t.Errorf("Error parsing cleanupSyncDocument result %v", err)
 	}
 
 	if jsonObject["key"] != "value" {
